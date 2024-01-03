@@ -61,10 +61,11 @@ namespace omni_drive_controller
             std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity;
         };
  */
-        std::vector<std::string> joint_names_;
+        double wheel_radius;
+        double robot_radius;
+        
+        std::vector<std::string> wheel_joint_names;
         std::vector<std::string> interface_names_;
-
-       
     };
 }
 

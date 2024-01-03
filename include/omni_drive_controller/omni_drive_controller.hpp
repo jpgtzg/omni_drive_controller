@@ -7,6 +7,9 @@
 
 #include "omni_drive_controller/visibility_control.h"
 #include "controller_interface/controller_interface.hpp"
+#include "rclcpp/rclcpp.hpp"
+
+
 
 namespace omni_drive_controller
 {
@@ -50,6 +53,18 @@ namespace omni_drive_controller
 
         controller_interface::CallbackReturn on_shutdown(
             const rclcpp_lifecycle::State &previous_state) override;
+
+    protected:
+       /*  struct WheelHandle
+        {
+            std::reference_wrapper<const hardware_interface::LoanedStateInterface> feedback;
+            std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity;
+        };
+ */
+        std::vector<std::string> joint_names_;
+        std::vector<std::string> interface_names_;
+
+       
     };
 }
 

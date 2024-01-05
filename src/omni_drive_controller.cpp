@@ -1,3 +1,5 @@
+// Written by Juan Pablo Gutierrez
+
 #include "omni_drive_controller.hpp"
 
 namespace
@@ -43,7 +45,15 @@ namespace omni_drive_controller
     controller_interface::CallbackReturn OmniDriveController::on_configure(const rclcpp_lifecycle::State &)
     {
         auto logger = get_node()->get_logger();
+
+        // Update parameters if they have changed
         wheel_joint_names = get_node()->get_parameter("wheel_joint_names").as_string_array();
+        interface_names_ = get_node()->get_parameter("interface_names_").as_string_array();        
+
+        wheel_radius = get_node()->get_parameter("wheel_radius").as_double();
+        robot_radius = get_node()->get_parameter("robot_radius").as_double();
+
+        // Verify parameter status
 
         if (wheel_joint_names.empty())
         {

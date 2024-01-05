@@ -19,6 +19,8 @@ namespace omni_drive_controller
 
     controller_interface::CallbackReturn OmniDriveController::on_init()
     {
+
+        this->node_ = get_node();
         try
         {
             controller_interface::CallbackReturn result = ControllerInterface::on_init();
@@ -28,6 +30,7 @@ namespace omni_drive_controller
 
             auto_declare<double>("wheel_radius", wheel_radius);
             auto_declare<double>("robot_radius", robot_radius);
+
 
             if (result != controller_interface::CallbackReturn::SUCCESS)
             {
@@ -44,14 +47,14 @@ namespace omni_drive_controller
 
     controller_interface::CallbackReturn OmniDriveController::on_configure(const rclcpp_lifecycle::State &)
     {
-        auto logger = get_node()->get_logger();
+        auto logger = node_->get_logger();
 
         // Update parameters if they have changed
-        wheel_joint_names = get_node()->get_parameter("wheel_joint_names").as_string_array();
-        interface_names_ = get_node()->get_parameter("interface_names_").as_string_array();        
+        wheel_joint_names = node_->get_parameter("wheel_joint_names").as_string_array();
+        interface_names_ = node_->get_parameter("interface_names_").as_string_array();
 
-        wheel_radius = get_node()->get_parameter("wheel_radius").as_double();
-        robot_radius = get_node()->get_parameter("robot_radius").as_double();
+        wheel_radius = node_->get_parameter("wheel_radius").as_double();
+        robot_radius = node_->get_parameter("robot_radius").as_double();
 
         // Verify parameter status
 
@@ -69,7 +72,7 @@ namespace omni_drive_controller
             return controller_interface::CallbackReturn::ERROR;
         }
 
-        double registered_wheel_radius = get_node()->get_parameter("wheel_radius").as_double();
+        double registered_wheel_radius = node_->get_parameter("wheel_radius").as_double();
 
         if (registered_wheel_radius <= 0)
         {
@@ -79,7 +82,7 @@ namespace omni_drive_controller
             return controller_interface::CallbackReturn::ERROR;
         }
 
-        double registered_robot_radius = get_node()->get_parameter("robot_radius").as_double();
+        double registered_robot_radius = node_->get_parameter("robot_radius").as_double();
 
         if (registered_robot_radius <= 0)
         {
@@ -88,6 +91,29 @@ namespace omni_drive_controller
                 registered_robot_radius);
             return controller_interface::CallbackReturn::ERROR;
         }
+
+        // Init command subscriber node
+        velocity_command_subscriber_ = node_->create_subscription<Twist>(
+            DEFAULT_COMMAND_TOPIC, rclcpp::SystemDefaultsQoS(),
+            [this](const std::shared_ptr<Twist> msg) -> void
+            {
+                if (!subscriber_is_active_)
+                {
+                    RCLCPP_WARN(get_node()->get_logger(), "Can't accept new commands. subscriber is inactive");
+                    return;
+                }
+                if ((msg->header.stamp.sec == 0) && (msg->header.stamp.nanosec == 0))
+                {
+                    RCLCPP_WARN_ONCE(
+                        get_node()->get_logger(),
+                        "Received TwistStamped with zero timestamp, setting it to current "
+                        "time, this message will only be shown once");
+                    msg->header.stamp = get_node()->get_clock()->now();
+                }
+                received_velocity_msg_ptr_.set(std::move(msg));
+            });
+
+        // Init publisher node
     }
 
     controller_interface::InterfaceConfiguration OmniDriveController::command_interface_configuration() const
@@ -103,11 +129,13 @@ namespace omni_drive_controller
     controller_interface::CallbackReturn OmniDriveController::on_activate(const rclcpp_lifecycle::State &previous_state)
     {
         // Implement on_activate method
+        subscriber_is_active_ = true;
     }
 
     controller_interface::CallbackReturn OmniDriveController::on_deactivate(const rclcpp_lifecycle::State &previous_state)
     {
         // Implement on_deactivate method
+        subscriber_is_active_ = false;
     }
 
     controller_interface::return_type OmniDriveController::update(const rclcpp::Time &time, const rclcpp::Duration &period)

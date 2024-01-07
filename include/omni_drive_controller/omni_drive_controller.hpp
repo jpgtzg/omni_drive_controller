@@ -61,7 +61,13 @@ namespace omni_drive_controller
             const rclcpp_lifecycle::State &previous_state) override;
 
     protected:
-      
+        struct WheelHandle
+        {
+            std::reference_wrapper<const hardware_interface::LoanedStateInterface> velocity_state;
+            std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity_command;
+        };
+
+        std::vector<WheelHandle> registered_wheel_handles_;
         // Parameters
         double wheel_radius = 0.05;
         double robot_radius = 0.26;
@@ -70,13 +76,17 @@ namespace omni_drive_controller
 
         std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
 
-
         // Subscriber and publishers
 
         bool subscriber_is_active_ = false;
-        rclcpp::Subscription<Twist>::SharedPtr velocity_command_subscriber_ = nullptr;
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr
+            velocity_command_subscriber_ = nullptr;
 
         realtime_tools::RealtimeBox<std::shared_ptr<Twist>> received_velocity_msg_ptr_{nullptr};
+
+    private:
+        void velocityCommandUnstampedCallback(const geometry_msgs::msg::Twist::SharedPtr cmd_vel);
+        geometry_msgs::msg::TwistStamped::SharedPtr cmd_vel_;
     };
 }
 

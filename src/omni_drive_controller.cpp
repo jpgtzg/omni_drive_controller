@@ -2,7 +2,6 @@
 
 #include "omni_drive_controller.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
-
 namespace
 {
     constexpr auto DEFAULT_COMMAND_TOPIC = "~/cmd_vel";
@@ -15,6 +14,7 @@ namespace
 
 using hardware_interface::HW_IF_POSITION;
 using hardware_interface::HW_IF_VELOCITY;
+using std::placeholders::_1;
 
 using namespace std;
 namespace omni_drive_controller
@@ -94,27 +94,14 @@ namespace omni_drive_controller
         }
 
         // Init command subscriber node
-        velocity_command_subscriber_ = node_->create_subscription<Twist>(
-            DEFAULT_COMMAND_TOPIC, rclcpp::SystemDefaultsQoS(),
-            [this](const std::shared_ptr<Twist> msg) -> void
-            {
-                if (!subscriber_is_active_)
-                {
-                    RCLCPP_WARN(get_node()->get_logger(), "Can't accept new commands. subscriber is inactive");
-                    return;
-                }
-                if ((msg->header.stamp.sec == 0) && (msg->header.stamp.nanosec == 0))
-                {
-                    RCLCPP_WARN_ONCE(
-                        get_node()->get_logger(),
-                        "Received TwistStamped with zero timestamp, setting it to current "
-                        "time, this message will only be shown once");
-                    msg->header.stamp = get_node()->get_clock()->now();
-                }
-                received_velocity_msg_ptr_.set(std::move(msg));
-            });
+        velocity_command_subscriber_ = node_->create_subscription<geometry_msgs::msg::Twist>(
+            DEFAULT_COMMAND_UNSTAMPED_TOPIC,
+            rclcpp::SystemDefaultsQoS(),
+            std::bind(&OmniDriveController::velocityCommandUnstampedCallback, this, _1));
 
         // Init publisher node
+
+        return controller_interface::CallbackReturn::SUCCESS;
     }
 
     controller_interface::InterfaceConfiguration OmniDriveController::command_interface_configuration() const
@@ -154,6 +141,19 @@ namespace omni_drive_controller
     controller_interface::return_type OmniDriveController::update(const rclcpp::Time &time, const rclcpp::Duration &period)
     {
         // Implement update method
+    }
+
+    void OmniDriveController::velocityCommandUnstampedCallback(
+        const geometry_msgs::msg::Twist::SharedPtr cmd_vel)
+    {
+        if (!subscriber_is_active_)
+        {
+            RCLCPP_WARN(node_->get_logger(), "Can't accept new commands. subscriber is inactive");
+            return;
+        }
+
+        this->cmd_vel_->twist = *cmd_vel;
+        this->cmd_vel_->header.stamp = node_->get_clock()->now();
     }
 
 }

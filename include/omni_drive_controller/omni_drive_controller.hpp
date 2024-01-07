@@ -24,7 +24,6 @@ namespace omni_drive_controller
 
     public:
         OmniDriveController();
-
         OMNI_DRIVE_CONTROLLER_PUBLIC
         controller_interface::InterfaceConfiguration command_interface_configuration() const override;
 
@@ -62,25 +61,15 @@ namespace omni_drive_controller
             const rclcpp_lifecycle::State &previous_state) override;
 
     protected:
-        struct WheelHandle
-        {
-            std::reference_wrapper<const hardware_interface::LoanedStateInterface> feedback;
-            std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity;
-        };
-
+      
         // Parameters
-        double wheel_radius;
-        double robot_radius;
+        double wheel_radius = 0.05;
+        double robot_radius = 0.26;
 
         std::vector<std::string> wheel_joint_names;
-        std::vector<std::string> interface_names_;
 
         std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
 
-        WheelHandle registered_wheel_1_handle;
-        WheelHandle registered_wheel_2_handle;
-        WheelHandle registered_wheel_3_handle;
-        WheelHandle registered_wheel_4_handle;
 
         // Subscriber and publishers
 

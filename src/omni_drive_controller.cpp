@@ -1,6 +1,7 @@
 // Written by Juan Pablo Gutierrez
 
 #include "omni_drive_controller.hpp"
+#include "hardware_interface/types/hardware_interface_type_values.hpp"
 
 namespace
 {
@@ -11,6 +12,9 @@ namespace
     constexpr auto DEFAULT_TRANSFORM_TOPIC = "/tf";
     constexpr auto WHEELS_QUANTITY = 4;
 } // namespace
+
+using hardware_interface::HW_IF_POSITION;
+using hardware_interface::HW_IF_VELOCITY;
 
 using namespace std;
 namespace omni_drive_controller
@@ -25,12 +29,10 @@ namespace omni_drive_controller
         {
             controller_interface::CallbackReturn result = ControllerInterface::on_init();
 
-            auto_declare<vector<string>>("wheel_joint_names", vector<string>());
-            auto_declare<vector<string>>("interface_names_", vector<string>());
+            auto_declare<vector<string>>("wheel_names", vector<string>());
 
             auto_declare<double>("wheel_radius", wheel_radius);
             auto_declare<double>("robot_radius", robot_radius);
-
 
             if (result != controller_interface::CallbackReturn::SUCCESS)
             {
@@ -51,7 +53,6 @@ namespace omni_drive_controller
 
         // Update parameters if they have changed
         wheel_joint_names = node_->get_parameter("wheel_joint_names").as_string_array();
-        interface_names_ = node_->get_parameter("interface_names_").as_string_array();
 
         wheel_radius = node_->get_parameter("wheel_radius").as_double();
         robot_radius = node_->get_parameter("robot_radius").as_double();
@@ -118,12 +119,24 @@ namespace omni_drive_controller
 
     controller_interface::InterfaceConfiguration OmniDriveController::command_interface_configuration() const
     {
-        // Implement command_interface_configuration
+        std::vector<std::string> conf_names;
+
+        for (const auto &joint_name : wheel_joint_names)
+        {
+            conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
+        }
+
+        return {controller_interface::interface_configuration_type::INDIVIDUAL, conf_names};
     }
 
     controller_interface::InterfaceConfiguration OmniDriveController::state_interface_configuration() const
     {
-        // Implement state_interface_configuration
+        std::vector<std::string> conf_names;
+        for (const auto &joint_name : wheel_joint_names)
+        {
+            conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
+        }
+        return {controller_interface::interface_configuration_type::INDIVIDUAL, conf_names};
     }
 
     controller_interface::CallbackReturn OmniDriveController::on_activate(const rclcpp_lifecycle::State &previous_state)

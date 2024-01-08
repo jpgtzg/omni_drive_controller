@@ -15,6 +15,9 @@
 #include "realtime_tools/realtime_buffer.h"
 #include "realtime_tools/realtime_publisher.h"
 
+#include "omni_drive_controller/config.hpp"
+#include "omni_drive_controller/kinematics.hpp"
+using namespace robot_params;
 namespace omni_drive_controller
 {
     class OmniDriveController : public controller_interface::ControllerInterface
@@ -67,16 +70,25 @@ namespace omni_drive_controller
             std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity_command;
         };
 
-        std::vector<WheelHandle> registered_wheel_handles_;
+        std::vector<WheelHandle> registered_left_wheel_handles_;
+        std::vector<WheelHandle> registered_right_wheel_handles_;
+        std::vector<WheelHandle> registered_front_wheel_handles_;
+        std::vector<WheelHandle> registered_back_wheel_handles_;
+
         // Parameters
-        double wheel_radius = 0.05;
-        double robot_radius = 0.26;
+
+        // Default parameters
 
         std::vector<std::string> wheel_joint_names;
 
         std::shared_ptr<rclcpp_lifecycle::LifecycleNode> node_;
 
+        std::chrono::milliseconds cmd_vel_timeout_{500};
+
         // Subscriber and publishers
+
+        RobotConfig config_{0.05, 0.26};
+        Kinematics kinematics_;
 
         bool subscriber_is_active_ = false;
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr
